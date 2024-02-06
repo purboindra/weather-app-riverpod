@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:weather_app_riverpod/models/current_weather/app_weather.dart';
-import 'package:weather_app_riverpod/models/current_weather/current_weather.dart';
 import 'package:weather_app_riverpod/pages/home/providers/weather_state.dart';
 import 'package:weather_app_riverpod/widgets/format_text.dart';
 import 'package:weather_app_riverpod/widgets/select_city.dart';
@@ -22,17 +21,18 @@ class _ShowWeatherState extends State<ShowWeather> {
   @override
   Widget build(BuildContext context) {
     final weatherState = widget.weatherState;
-    switch (weatherState) {
-      case WeatherStateInitial():
+    switch (weatherState.status) {
+      case WeatherStatus.initial:
         return const SelectCity();
 
-      case WeatherStateLoading():
+      case WeatherStatus.loading:
         return const Center(
           child: CircularProgressIndicator.adaptive(),
         );
 
-      case WeatherStateSuccess(currentWeather: CurrentWeather currentWeather):
-        final appWeather = AppWeather.fromCurrentWeather(currentWeather);
+      case WeatherStatus.success:
+        final appWeather =
+            AppWeather.fromCurrentWeather(weatherState.currentWeather!);
         prevWeatherWidget = ListView(
           children: [
             SizedBox(
@@ -110,7 +110,7 @@ class _ShowWeatherState extends State<ShowWeather> {
           ],
         );
         return prevWeatherWidget;
-      case WeatherStateFailure(error: _):
+      case WeatherStatus.failure:
         return prevWeatherWidget is SizedBox
             ? const SelectCity()
             : prevWeatherWidget;

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:weather_app_riverpod/constants/constants.dart';
 import 'package:weather_app_riverpod/models/current_weather/app_weather.dart';
-import 'package:weather_app_riverpod/models/current_weather/current_weather.dart';
-import 'package:weather_app_riverpod/models/custom_error/custom_error.dart';
 import 'package:weather_app_riverpod/pages/home/providers/theme_provider.dart';
 import 'package:weather_app_riverpod/pages/home/providers/theme_state.dart';
 import 'package:weather_app_riverpod/pages/home/providers/weather_provider.dart';
@@ -26,12 +24,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     ref.listen<WeatherState>(weatherProvider, (previous, next) {
-      switch (next) {
-        case WeatherStateFailure(error: CustomError error):
-          errorDialog(context, error.errorMessage);
+      switch (next.status) {
+        case WeatherStatus.failure:
+          errorDialog(context, next.error.errorMessage);
           break;
-        case WeatherStateSuccess(currentWeather: CurrentWeather currentWeather):
-          final weather = AppWeather.fromCurrentWeather(currentWeather);
+        case WeatherStatus.success:
+          final weather = AppWeather.fromCurrentWeather(next.currentWeather!);
           if (weather.temp < kWarmOrNot) {
             ref.read(themeProvider.notifier).changeTheme(const DarkTheme());
           } else {
