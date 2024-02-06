@@ -1,33 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:weather_app_riverpod/models/current_weather/app_weather.dart';
 import 'package:weather_app_riverpod/models/current_weather/current_weather.dart';
-import 'package:weather_app_riverpod/models/custom_error/custom_error.dart';
+import 'package:weather_app_riverpod/pages/home/providers/weather_state.dart';
 import 'package:weather_app_riverpod/widgets/format_text.dart';
 import 'package:weather_app_riverpod/widgets/select_city.dart';
 import 'package:weather_app_riverpod/widgets/show_icon.dart';
 import 'package:weather_app_riverpod/widgets/show_temprature.dart';
 
-class ShowWeather extends ConsumerWidget {
+class ShowWeather extends StatefulWidget {
   const ShowWeather({super.key, required this.weatherState});
 
-  final AsyncValue<CurrentWeather?> weatherState;
+  final WeatherState weatherState;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return weatherState.when(
-      skipError: true,
-      data: (data) {
-        if (data == null) {
-          return const SelectCity();
-        }
+  State<ShowWeather> createState() => _ShowWeatherState();
+}
 
-        return ListView(
+class _ShowWeatherState extends State<ShowWeather> {
+  Widget prevWeatherWidget = const SizedBox.shrink();
+
+  @override
+  Widget build(BuildContext context) {
+    final weatherState = widget.weatherState;
+    switch (weatherState) {
+      case WeatherStateInitial():
+        return const SelectCity();
+
+      case WeatherStateLoading():
+        return const Center(
+          child: CircularProgressIndicator.adaptive(),
+        );
+
+      case WeatherStateSuccess(currentWeather: CurrentWeather currentWeather):
+        final appWeather = AppWeather.fromCurrentWeather(currentWeather);
+        prevWeatherWidget = ListView(
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height / 6,
             ),
             Text(
-              data.name,
+              appWeather.name,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 40,
@@ -45,7 +57,7 @@ class ShowWeather extends ConsumerWidget {
                   width: 10,
                 ),
                 Text(
-                  '(${data.sys.country})',
+                  '(${appWeather.country})',
                   style: const TextStyle(fontSize: 18),
                 ),
                 const SizedBox(
@@ -57,7 +69,7 @@ class ShowWeather extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ShowTemprature(
-                  temprature: data.main.temp,
+                  temprature: appWeather.temp,
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
                 ),
@@ -67,14 +79,14 @@ class ShowWeather extends ConsumerWidget {
                 Column(
                   children: [
                     ShowTemprature(
-                      temprature: data.main.tempMax,
+                      temprature: appWeather.tempMax,
                       fontSize: 16,
                     ),
                     const SizedBox(
                       width: 10,
                     ),
                     ShowTemprature(
-                      temprature: data.main.tempMin,
+                      temprature: appWeather.tempMin,
                       fontSize: 16,
                     ),
                   ],
@@ -87,29 +99,23 @@ class ShowWeather extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                ShowIcon(icon: data.weather[0].icon),
+                ShowIcon(icon: appWeather.icon),
                 Expanded(
                   flex: 3,
-                  child: FormatText(description: data.weather[0].description),
+                  child: FormatText(description: appWeather.description),
                 ),
                 const Spacer(),
               ],
             ),
           ],
         );
-      },
-      error: (error, stackTrace) {
-        if (weatherState.value == null) {
-          return const SelectCity();
-        }
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Text((error as CustomError).errorMessage),
-          ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-    );
+        return prevWeatherWidget;
+      case WeatherStateFailure(error: _):
+        return prevWeatherWidget is SizedBox
+            ? const SelectCity()
+            : prevWeatherWidget;
+      default:
+        return const SizedBox();
+    }
   }
 }
