@@ -11,9 +11,7 @@ class WeatherRepository {
   Future<CurrentWeather> fetchWeather(String city) async {
     try {
       final directGeocoding = await weatherApiServices.getDirectGeocoding(city);
-
       final tempWeather = await weatherApiServices.getWeather(directGeocoding);
-
       final currentWeather = tempWeather.copyWith(
         name: directGeocoding.name,
         sys: tempWeather.sys.copyWith(country: directGeocoding.country),
@@ -21,9 +19,13 @@ class WeatherRepository {
 
       return currentWeather;
     } on WeatherException catch (e) {
+      print("MASOK WEATHER EXCEPTION $e");
       throw CustomError(errorMessage: e.message);
-    } catch (e) {
-      throw CustomError(errorMessage: e.toString());
+    } catch (e, st) {
+      print("MASOK EXCEPTION $e $st");
+      throw CustomError(
+          errorMessage:
+              e.toString().contains("404") ? "Not found" : e.toString());
     }
   }
 }

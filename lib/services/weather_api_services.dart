@@ -15,11 +15,12 @@ class WeatherApiServices {
 
   Future<DirectGeocoding> getDirectGeocoding(String city) async {
     try {
-      final response = await dio.get('/get/1.0/direct', queryParameters: {
+      final response = await dio.get('/geo/1.0/direct', queryParameters: {
         "q": city,
         "limit": kLimit,
         "appid": dotenv.env["APPID"],
       });
+
       if (response.statusCode != 200) {
         throw dioErrorHandler(response);
       }
@@ -47,6 +48,8 @@ class WeatherApiServices {
           "appid": dotenv.env["APPID"],
         },
       );
+
+      print("DATAA GET WEATHER ${response.data} - ${response.statusCode}");
 
       if (response.statusCode != 200) {
         throw dioErrorHandler(response);

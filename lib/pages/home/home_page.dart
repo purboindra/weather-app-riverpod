@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:weather_app_riverpod/extensions/async_value_xx.dart';
+import 'package:weather_app_riverpod/constants/constants.dart';
+import 'package:weather_app_riverpod/models/current_weather/app_weather.dart';
 import 'package:weather_app_riverpod/models/current_weather/current_weather.dart';
 import 'package:weather_app_riverpod/models/custom_error/custom_error.dart';
+import 'package:weather_app_riverpod/pages/home/providers/theme_provider.dart';
+import 'package:weather_app_riverpod/pages/home/providers/theme_state.dart';
 import 'package:weather_app_riverpod/pages/home/providers/weather_provider.dart';
+import 'package:weather_app_riverpod/pages/home/providers/weather_state.dart';
 import 'package:weather_app_riverpod/pages/search/search_page.dart';
+import 'package:weather_app_riverpod/pages/temp_setting/temp_setting.dart';
+import 'package:weather_app_riverpod/widgets/error_dialog.dart';
+import 'package:weather_app_riverpod/widgets/show_weather.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -18,24 +25,24 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<CurrentWeather?>>(weatherProvider, (previous, next) {
-      next.whenOrNull(
-        error: (error, stackTrace) {
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                content: Text((error as CustomError).errorMessage),
-              );
-            },
-          );
-        },
-      );
+    ref.listen<WeatherState>(weatherProvider, (previous, next) {
+      switch (next) {
+        case WeatherStateFailure(error: CustomError error):
+          errorDialog(context, error.errorMessage);
+          break;
+        case WeatherStateSuccess(currentWeather: CurrentWeather currentWeather):
+          final weather = AppWeather.fromCurrentWeather(currentWeather);
+          if (weather.temp < kWarmOrNot) {
+            ref.read(themeProvider.notifier).changeTheme(const DarkTheme());
+          } else {
+            ref.read(themeProvider.notifier).changeTheme(const LightTheme());
+          }
+        case _:
+      }
     });
 
     final weatherState = ref.watch(weatherProvider);
 
-    print(weatherState.toStr);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Weather"),
@@ -47,13 +54,27 @@ class _HomePageState extends ConsumerState<HomePage> {
                     builder: (context) => const SearchPage(),
                   ),
                 );
-                print("CITY: $city");
                 if (city != null) {
                   ref.read(weatherProvider.notifier).fetchWeather(city!);
                 }
               },
-              icon: const Icon(Icons.search))
+              icon: const Icon(Icons.search)),
+          IconButton(
+              onPressed: () async {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => const TempSettingPage(),
+                ));
+              },
+              icon: const Icon(Icons.settings))
         ],
+      ),
+      body: ShowWeather(weatherState: weatherState),
+      floatingActionButton: FloatingActionButton(
+        onPressed: city == null
+            ? null
+            : () {
+                ref.read(weatherProvider.notifier).fetchWeather(city!);
+              },
       ),
     );
   }
