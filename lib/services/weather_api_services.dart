@@ -13,6 +13,33 @@ class WeatherApiServices {
     required this.dio,
   });
 
+  Future<String> getReverseGeocoding(double lat, double lon) async {
+    try {
+      final response = await dio.get(
+        '/geo/1.0/reverse',
+        queryParameters: {
+          "lat": '$lat',
+          "lon": '$lon',
+          "units": kUnit,
+          "appid": dotenv.env["APPID"],
+        },
+      );
+      if (response.statusCode != 200) {
+        throw dioErrorHandler(response);
+      }
+      final List result = response.data;
+
+      if (result.isEmpty) {
+        throw WeatherException(
+            'Cannot get the name of the location ($lat, $lon)');
+      }
+      final city = result[0]["name"];
+      return city;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<DirectGeocoding> getDirectGeocoding(String city) async {
     try {
       final response = await dio.get('/geo/1.0/direct', queryParameters: {
